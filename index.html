@@ -222,7 +222,7 @@
                 </div>
                 <div class="bg-gray-100 rounded-lg p-4">
                     <div class="flex items-center space-x-2">
-                        <div class="w-5 h-5 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div class="w-5 h-5 border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
                         <span class="text-gray-600">Analyzing Hacker News data...</span>
                     </div>
                 </div>
@@ -252,7 +252,12 @@
                 // Fetch first 30 stories
                 const storyIds = topStoryIds.slice(0, 30);
                 const storyPromises = storyIds.map(id => 
-                    fetch(`${HN_API_BASE}/item/${id}.json`).then(res => res.json())
+                    fetch(`${HN_API_BASE}/item/${id}.json`)
+                        .then(res => {
+                            if (!res.ok) return null;
+                            return res.json();
+                        })
+                        .catch(() => null)
                 );
                 
                 const stories = await Promise.all(storyPromises);
@@ -323,11 +328,11 @@ Format your response in a clear, conversational manner.`;
             // Escape HTML first
             text = escapeHtml(text);
             
-            // Convert **bold** to <strong>
-            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Convert **bold** to <strong> (must be done before italic to handle nested formatting)
+            text = text.replace(/\*\*([^\*]+)\*\*/g, '<strong>$1</strong>');
             
-            // Convert *italic* to <em>
-            text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+            // Convert *italic* to <em> (using negative lookahead/lookbehind to avoid matching **)
+            text = text.replace(/(?<!\*)\*(?!\*)([^\*]+)\*(?!\*)/g, '<em>$1</em>');
             
             // Convert newlines to <br>
             text = text.replace(/\n/g, '<br>');
